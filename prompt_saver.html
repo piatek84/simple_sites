@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 2rem;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: #000;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #000;
+            color: #fff;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: #333;
+        }
+
+        .btn-secondary {
+            background: #fff;
+            color: #000;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .prompt-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 2rem;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .prompts-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .prompt-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .prompt-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .prompt-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .prompt-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s ease;
+            font-size: 1.3rem;
+            line-height: 1;
+        }
+
+        .btn-icon.edit-icon {
+            display: inline-block;
+            transform: scaleX(-1);
+        }
+
+        .btn-icon:hover {
+            background: #f0f0f0;
+        }
+
+        .btn-delete:hover {
+            background: #fee;
+            color: #e53e3e;
+        }
+
+        .prompt-content {
+            color: #888;
+            line-height: 1.6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.95rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .empty-state-text {
+            color: #999;
+            font-size: 1.1rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .prompt-form {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Prompt Manager</h1>
+            <p class="subtitle">Organize and manage your prompts - Auto-saved locally</p>
+        </header>
+
+        <div class="actions">
+            <button class="btn-primary" onclick="toggleForm()">+ New Prompt</button>
+            <button class="btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
+            <button class="btn-secondary" onclick="document.getElementById('importFile').click()">↑ Import CSV</button>
+            <input type="file" id="importFile" accept=".csv" onchange="importCSV(event)">
+        </div>
+
+        <div class="prompt-form" id="promptForm" style="display: none;">
+            <input type="text" id="promptTitle" placeholder="Prompt title" />
+            <textarea id="promptContent" placeholder="Prompt content" oninput="autoResizeTextarea()" style="min-height: 120px;"></textarea>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-primary" onclick="savePrompt()">Save</button>
+                <button class="btn-secondary" onclick="toggleForm()">× Cancel</button>
+            </div>
+        </div>
+
+        <div class="prompts-list" id="promptsList"></div>
+    </div>
+
+    <script>
+        let prompts = [];
+        let editingIndex = -1;
+
+        // Load prompts from localStorage on start
+        function loadPrompts() {
+            try {
+                const data = localStorage.getItem('prompts');
+                if (data) {
+                    prompts = JSON.parse(data);
+                }
+            } catch (e) {
+                console.error('Error loading prompts:', e);
+                prompts = [];
+            }
+            renderPrompts();
+        }
+
+        // Save prompts to localStorage
+        function saveToCache() {
+            try {
+                localStorage.setItem('prompts', JSON.stringify(prompts));
+            } catch (e) {
+                console.error('Error saving prompts:', e);
+                alert('Error saving. Storage might be full.');
+            }
+        }
+
+        // Show/hide form
+        function toggleForm() {
+            const form = document.getElementById('promptForm');
+            const isVisible = form.style.display !== 'none';
+            
+            if (isVisible) {
+                form.style.display = 'none';
+                clearForm();
+            } else {
+                form.style.display = 'block';
+                document.getElementById('promptTitle').focus();
+            }
+        }
+
+        // Clear form
+        function clearForm() {
+            document.getElementById('promptTitle').value = '';
+            document.getElementById('promptContent').value = '';
+            document.getElementById('promptContent').style.height = '120px';
+            editingIndex = -1;
+        }
+
+        // Save prompt
+        function savePrompt() {
+            const title = document.getElementById('promptTitle').value.trim();
+            const content = document.getElementById('promptContent').value.trim();
+
+            if (!title || !content) {
+                alert('Please complete all fields');
+                return;
+            }
+
+            const prompt = { title, content };
+
+            if (editingIndex >= 0) {
+                prompts[editingIndex] = prompt;
+                editingIndex = -1;
+            } else {
+                prompts.unshift(prompt);
+            }
+
+            saveToCache();
+            renderPrompts();
+            toggleForm();
+        }
+
+        // Edit prompt
+        function editPrompt(index) {
+            const prompt = prompts[index];
+            document.getElementById('promptTitle').value = prompt.title;
+            document.getElementById('promptContent').value = prompt.content;
+            editingIndex = index;
+            document.getElementById('promptForm').style.display = 'block';
+            document.getElementById('promptTitle').focus();
+            
+            // Auto-resize textarea to fit content
+            autoResizeTextarea();
+        }
+
+        // Auto-resize textarea
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('promptContent');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.max(120, textarea.scrollHeight) + 'px';
+        }
+
+        // Delete prompt
+        function deletePrompt(index) {
+            if (confirm('Are you sure you want to delete this prompt?')) {
+                prompts.splice(index, 1);
+                saveToCache();
+                renderPrompts();
+            }
+        }
+
+        // Copy prompt to clipboard
+        function copyPrompt(content) {
+            navigator.clipboard.writeText(content).then(() => {
+                alert('Prompt copied to clipboard');
+            }).catch(() => {
+                alert('Error copying prompt');
+            });
+        }
+
+        // Render prompts list
+        function renderPrompts() {
+            const list = document.getElementById('promptsList');
+            
+            if (prompts.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">∅</div>
+                        <p class="empty-state-text">No prompts saved. Create your first prompt!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = prompts.map((prompt, index) => {
+                // Get first line as preview
+                const firstLine = prompt.content.split('\n')[0];
+                const preview = firstLine.length > 100 ? firstLine.substring(0, 100) + '...' : firstLine;
+                
+                return `
+                <div class="prompt-card">
+                    <div class="prompt-header">
+                        <div class="prompt-title">${escapeHtml(prompt.title)}</div>
+                        <div class="prompt-actions">
+                            <button class="btn-icon" onclick="copyPrompt(\`${escapeHtml(prompt.content).replace(/`/g, '\\`')}\`)" title="Copy">⎘</button>
+                            <button class="btn-icon edit-icon" onclick="editPrompt(${index})" title="Edit">✎</button>
+                            <button class="btn-icon btn-delete" onclick="deletePrompt(${index})" title="Delete">×</button>
+                        </div>
+                    </div>
+                    <div class="prompt-content">${escapeHtml(preview)}</div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Export to CSV
+        function exportCSV() {
+            if (prompts.length === 0) {
+                alert('No prompts to export');
+                return;
+            }
+
+            const csvContent = prompts.map(prompt => {
+                // Escape quotes and preserve line breaks
+                const title = `"${prompt.title.replace(/"/g, '""')}"`;
+                const content = `"${prompt.content.replace(/"/g, '""')}"`;
+                return `${title},${content}`;
+            }).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `prompts_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Import from CSV
+        function importCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const imported = [];
+                
+                // Parse CSV properly handling multiline fields
+                let currentLine = '';
+                let inQuotes = false;
+                let lines = [];
+                
+                for (let i = 0; i < content.length; i++) {
+                    const char = content[i];
+                    const nextChar = content[i + 1];
+                    
+                    if (char === '"' && nextChar === '"') {
+                        currentLine += '"';
+                        i++; // Skip next quote
+                    } else if (char === '"') {
+                        inQuotes = !inQuotes;
+                        currentLine += char;
+                    } else if (char === '\n' && !inQuotes) {
+                        if (currentLine.trim()) {
+                            lines.push(currentLine);
+                        }
+                        currentLine = '';
+                    } else {
+                        currentLine += char;
+                    }
+                }
+                
+                // Add last line if exists
+                if (currentLine.trim()) {
+                    lines.push(currentLine);
+                }
+
+                // Parse each line
+                lines.forEach(line => {
+                    if (!line.trim()) return;
+                    
+                    // Match pattern: "title","content"
+                    const matches = line.match(/^"((?:[^"]|"")*)","((?:[^"]|"")*)"$/);
+                    
+                    if (matches) {
+                        const title = matches[1].replace(/""/g, '"').trim();
+                        const promptContent = matches[2].replace(/""/g, '"').trim();
+                        
+                        if (title && promptContent) {
+                            imported.push({ title, content: promptContent });
+                        }
+                    }
+                });
+
+                if (imported.length > 0) {
+                    if (confirm(`Import ${imported.length} prompt(s)? This will add them to your existing prompts.`)) {
+                        prompts = [...imported, ...prompts];
+                        saveToCache();
+                        renderPrompts();
+                        alert(`${imported.length} prompt(s) imported successfully`);
+                    }
+                } else {
+                    alert('No valid prompts found in file');
+                }
+
+                event.target.value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        // Initialize
+        loadPrompts();
+    </script>
+</body>
+</html>
